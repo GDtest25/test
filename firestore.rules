@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+    
+    function isPendingReview() {
+      return request.resource.data.status == 'pending' 
+        && request.resource.data.isVerified == false;
+    }
+
+    // Admin collection
+    match /admins/{document=**} {
+      allow read: if true;  // Allow reading for authentication
+      allow write: if isAdmin();
+    }
+    
+    // Reviews collection
+    match /reviews/{reviewId} {
+      // Allow anyone to read approved reviews, admins can read all
+      allow read: if true;
+      // Allow anyone to create pending reviews
+      allow create: if true;
+      // Only admins can update or delete
+      allow update, delete: if isAdmin();
+    }
+
+    // Realizations/Projects collection
+    match /realizations/{projectId} {
+      allow read: if true;  // Anyone can view projects
+      allow write: if isAdmin();  // Only admins can modify projects
+    }
+  }
+}
